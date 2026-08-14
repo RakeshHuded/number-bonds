@@ -102,13 +102,6 @@
   }
   @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 
-  /* ── Counters (visual dots) ── */
-  .counters { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 16px; min-height: 24px; }
-  .dot { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15); }
-  .dot.a { background: var(--partA); }
-  .dot.b { background: var(--partB); }
-  .dot.q { background: #e0e7ff; border: 2px dashed #a5b4fc; box-sizing: border-box; }
-
   .q-text { text-align: center; font-size: 17px; font-weight: bold; margin: 16px 0 4px; }
   .q-text b { color: var(--partB); }
 
@@ -218,8 +211,6 @@
           <div class="part-circle b unknown" id="partB">?</div>
         </div>
 
-        <div class="counters" id="counters"></div>
-
         <p class="q-text" id="qText"></p>
         <div class="pad" id="pad"></div>
         <div class="feedback" id="feedback"></div>
@@ -316,16 +307,6 @@
     }
   }
 
-  // ── Counters (visual dots showing the bond) ──
-  function renderCounters(a, showAnswerDots) {
-    var c = $("counters");
-    c.innerHTML = "";
-    var i;
-    for (i = 0; i < a; i++) c.appendChild(dot("a"));
-    for (i = 0; i < (target - a); i++) c.appendChild(dot(showAnswerDots ? "b" : "q"));
-    function dot(cls) { var d = document.createElement("span"); d.className = "dot " + cls; return d; }
-  }
-
   // ── Play mode ──
   window.startPlay = function () {
     correct = 0; total = 0; streak = 0; bestStreak = 0;
@@ -345,8 +326,6 @@
     var pb = $("partB");
     pb.textContent = "?";
     pb.className = "part-circle b unknown";
-
-    renderCounters(currentPartA, false);
 
     $("qText").innerHTML = currentPartA + " and <b>?</b> make " + target;
     $("feedback").textContent = "";
@@ -380,7 +359,6 @@
       var pb = $("partB");
       pb.textContent = currentAnswer;
       pb.className = "part-circle b";
-      renderCounters(currentPartA, true);
       var fb = $("feedback");
       fb.className = "feedback good";
       fb.textContent = pickPraise() + "  " + currentPartA + " + " + currentAnswer + " = " + target;
@@ -401,7 +379,7 @@
       sndBad();
       var f2 = $("feedback");
       f2.className = "feedback bad";
-      f2.textContent = "Try again! Count the empty dots 🔵";
+      f2.textContent = "Try again! What adds to " + currentPartA + " to make " + target + "? 🤔";
       updateStreak();
       updateStats();
       setTimeout(function () { btn.classList.remove("wrong"); }, 400);
