@@ -142,6 +142,12 @@
   .bond-line .chip.b { background: var(--partB); }
   .bond-line .chip.w { background: var(--whole); }
   .bond-line .op { text-align: center; color: var(--muted); }
+  .bond-group-title {
+    font-size: 17px; font-weight: bold; color: var(--whole);
+    margin: 12px 4px 2px; display: flex; align-items: center; gap: 8px;
+  }
+  .bond-group-title:first-child { margin-top: 0; }
+  .bond-group-title::before { content: "🔵"; font-size: 15px; }
 
   .back-link {
     display: inline-flex; align-items: center; gap: 6px; background: #fff; color: var(--whole);
@@ -178,9 +184,10 @@
     <!-- ── HOME ── -->
     <section id="home" class="screen active">
       <div class="panel">
-        <h2>Pick a number to make</h2>
-        <p class="hint">Choose the whole number, then how you want to practise.</p>
+        <h2>Pick one or more numbers to make</h2>
+        <p class="hint">Tap the numbers you want to practise (like 6, 7 and 8), then choose how.</p>
         <div class="num-grid" id="numGrid"></div>
+        <p class="hint" id="pickedHint" style="margin-top:12px;margin-bottom:0;"></p>
       </div>
       <div class="panel">
         <div class="mode-row">
@@ -245,6 +252,7 @@
 
   // ── State ──
   var STORE_KEY = "numberBondsStars";
+  var selectedTargets = [10];
   var target = 10;
   var currentPartA = 0, currentAnswer = 0;
   var correct = 0, total = 0, streak = 0, bestStreak = 0;
@@ -286,8 +294,7 @@
   }
   window.goHome = function () { show("home"); };
 
-  // ── Home: number picker ──
-  var selectedBtn = null;
+  // ── Home: number picker (multi-select) ──
   function buildNumGrid() {
     var grid = $("numGrid");
     grid.innerHTML = "";
@@ -295,15 +302,35 @@
       (function (n) {
         var b = document.createElement("button");
         b.textContent = n;
-        if (n === target) { b.classList.add("sel"); selectedBtn = b; }
+        if (selectedTargets.indexOf(n) !== -1) b.classList.add("sel");
         b.addEventListener("click", function () {
           sndTap();
-          target = n;
-          if (selectedBtn) selectedBtn.classList.remove("sel");
-          b.classList.add("sel"); selectedBtn = b;
+          var idx = selectedTargets.indexOf(n);
+          if (idx === -1) {
+            selectedTargets.push(n);
+            b.classList.add("sel");
+          } else if (selectedTargets.length > 1) {
+            // keep at least one number selected
+            selectedTargets.splice(idx, 1);
+            b.classList.remove("sel");
+          }
+          updatePickedHint();
         });
         grid.appendChild(b);
       })(i);
+    }
+    updatePickedHint();
+  }
+
+  function updatePickedHint() {
+    var sorted = selectedTargets.slice().sort(function (a, b) { return a - b; });
+    var hint = $("pickedHint");
+    if (sorted.length === 1) {
+      hint.textContent = "Practising number bonds to " + sorted[0] + ".";
+    } else {
+      var last = sorted[sorted.length - 1];
+      var head = sorted.slice(0, -1).join(", ");
+      hint.textContent = "Practising: " + head + " and " + last + " — questions will mix them up!";
     }
   }
 
@@ -317,6 +344,8 @@
 
   function nextQuestion() {
     locked = false;
+    // Pick a random number from the selected set for this question
+    target = selectedTargets[Math.floor(Math.random() * selectedTargets.length)];
     // For target N, part A can be 0..N; answer = N - A
     currentPartA = Math.floor(Math.random() * (target + 1));
     currentAnswer = target - currentPartA;
@@ -402,21 +431,32 @@
 
   // ── Explore mode ──
   window.startExplore = function () {
-    $("exploreTitle").textContent = "Bonds that make " + target;
+    var sorted = selectedTargets.slice().sort(function (a, b) { return a - b; });
+    $("exploreTitle").textContent = sorted.length === 1
+      ? "Bonds that make " + sorted[0]
+      : "Bonds that make " + sorted.join(", ");
     var list = $("bondList");
     list.innerHTML = "";
-    for (var a = 0; a <= target; a++) {
-      var b = target - a;
-      var row = document.createElement("div");
-      row.className = "bond-line";
-      row.innerHTML =
-        '<div class="chip a">' + a + '</div>' +
-        '<div class="op">+</div>' +
-        '<div class="chip b">' + b + '</div>' +
-        '<div class="op">=</div>' +
-        '<div class="chip w">' + target + '</div>';
-      list.appendChild(row);
-    }
+    sorted.forEach(function (t) {
+      if (sorted.length > 1) {
+        var hdr = document.createElement("div");
+        hdr.className = "bond-group-title";
+        hdr.textContent = "Make " + t;
+        list.appendChild(hdr);
+      }
+      for (var a = 0; a <= t; a++) {
+        var b = t - a;
+        var row = document.createElement("div");
+        row.className = "bond-line";
+        row.innerHTML =
+          '<div class="chip a">' + a + '</div>' +
+          '<div class="op">+</div>' +
+          '<div class="chip b">' + b + '</div>' +
+          '<div class="op">=</div>' +
+          '<div class="chip w">' + t + '</div>';
+        list.appendChild(row);
+      }
+    });
     show("explore");
   };
 
